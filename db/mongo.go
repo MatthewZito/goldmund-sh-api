@@ -1,23 +1,31 @@
 package db
 
 import (
-	"log"
+	"context"
 	"os"
 
 	"github.com/joho/godotenv"
-	"gopkg.in/mgo.v2"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func InitMongoSession() *mgo.Session {
+// InitMongoSession initializes a session to the environmentally-specified cluster and returns a pointer to the similarly specified collection
+func InitMongoSession() (*mongo.Collection, error) {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		return nil, err
 	}
-	connStr := os.Getenv("MONGO_URI")
-	s, err := mgo.Dial(connStr)
+	endpoint := os.Getenv("MONGO_URI")
+
+	clientOptions := options.Client().ApplyURI(endpoint)
+
+	client, err := mongo.Connect(context.Background(), clientOptions)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return s
+
+	collection := client.Database("test").Collection("entries")
+
+	return collection, nil
 }

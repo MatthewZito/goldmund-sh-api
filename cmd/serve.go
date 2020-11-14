@@ -21,10 +21,16 @@ func Health(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	r := mux.NewRouter()
-	ec := controllers.InitEntryController(db.InitMongoSession())
+
+	s, err := db.InitMongoSession()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ec := controllers.InitEntryController(s)
 	r.HandleFunc("/", Health)
 	r.HandleFunc("/entries", ec.GetAllEntries)
-	r.HandleFunc("/entries/{id}", ec.GetEntryBySlug)
+	r.HandleFunc("/entries/{slug}", ec.GetEntryBySlug)
 
 	if err := http.ListenAndServe(":5000", r); err != nil {
 		log.Fatal(err)
