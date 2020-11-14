@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  goldmund-sh-api:
+    container_name: goldmund-sh-api
+    restart: always
+    ports:
+      - "5000:5000"
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file:
+      - .env
+    volumes:
+      - .:/usr/src/app
+    networks:
+      - goldmund-sh-network
+
+networks:
+  goldmund-sh-network:
+    driver: bridge
