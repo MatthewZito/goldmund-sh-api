@@ -9,6 +9,7 @@ import (
 	"github.com/MatthewZito/goldmund-sh-api/db"
 	"github.com/MatthewZito/goldmund-sh-api/shared"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 )
 
 func Health(w http.ResponseWriter, r *http.Request) {
@@ -22,6 +23,11 @@ func Health(w http.ResponseWriter, r *http.Request) {
 func main() {
 	r := mux.NewRouter()
 
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET", "OPTIONS", "HEAD", "POST", "PUT"},
+	})
+
 	s, err := db.InitMongoSession()
 	if err != nil {
 		log.Fatal(err)
@@ -32,7 +38,7 @@ func main() {
 	r.HandleFunc("/entries", ec.GetAllEntries)
 	r.HandleFunc("/entries/{slug}", ec.GetEntryBySlug)
 
-	if err := http.ListenAndServe(":5000", r); err != nil {
+	if err := http.ListenAndServe(":5000", c.Handler(r)); err != nil {
 		log.Fatal(err)
 	}
 }
