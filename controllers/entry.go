@@ -6,9 +6,9 @@ import (
 
 	"github.com/MatthewZito/goldmund-sh-api/models"
 	"github.com/MatthewZito/goldmund-sh-api/shared"
-	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // EntryController maintains a pointer to a given db collection
@@ -23,8 +23,7 @@ func InitEntryController(s *mongo.Collection) *EntryController {
 
 // GetEntryBySlug fetches from the cluster endpoint a single entry, specified by its unique slug identifier
 func (ec EntryController) GetEntryBySlug(w http.ResponseWriter, r *http.Request) {
-	p := mux.Vars(r)
-	slug := p["slug"]
+	slug := r.FormValue("slug")
 
 	var entry models.Entry
 
@@ -40,10 +39,17 @@ func (ec EntryController) GetEntryBySlug(w http.ResponseWriter, r *http.Request)
 
 // GetAllEntries fetches all entries from the cluster endpoint
 func (ec EntryController) GetAllEntries(w http.ResponseWriter, r *http.Request) {
+	lastProcessedID := r.FormValue("last")
 
 	var entries []models.Entry
 
-	curs, err := ec.coll.Find(context.Background(), bson.M{})
+	options := options.Find()
+
+	options.SetSort(bson.M{"createdAt": -1})
+
+	options.SetLimit(10)
+
+	curs, err := ec.BuildEntryFilter(lastProcessedID, options)
 
 	if err != nil {
 		shared.FError(w, http.StatusBadRequest, "Failed to fetch entries")
@@ -72,4 +78,13 @@ func (ec EntryController) GetAllEntries(w http.ResponseWriter, r *http.Request) 
 	}
 
 	shared.FResponse(w, http.StatusOK, entries)
+}
+
+// BuildEntryFilter constructs a filtered cursor contingent on `lastProcessedID`
+func (ec EntryController) BuildEntryFilter(lastProcessedID string, options *options.FindOptions) (curs *mongo.Cursor, err error) {
+	if lastProcessedID != "" {
+		return ec.coll.Find(context.Background(), bson.M{"createdAt": bson.M{"$lt": lastProcessedID}}, options)
+	}
+
+	return ec.coll.Find(context.Background(), bson.M{}, options)
 }

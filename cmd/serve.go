@@ -34,9 +34,10 @@ func main() {
 	}
 
 	ec := controllers.InitEntryController(s)
-	r.HandleFunc("/", Health)
-	r.HandleFunc("/entries", ec.GetAllEntries)
-	r.HandleFunc("/entries/{slug}", ec.GetEntryBySlug)
+	r.Path("/").HandlerFunc(Health)
+	r.Path("/entries").Queries("slug", "{*?}").HandlerFunc(ec.GetEntryBySlug)
+	r.Path("/entries").HandlerFunc(ec.GetAllEntries)
+	r.Path("/entries").Queries("last", "{*?}").HandlerFunc(ec.GetAllEntries)
 
 	if err := http.ListenAndServe(":5000", c.Handler(r)); err != nil {
 		log.Fatal(err)
