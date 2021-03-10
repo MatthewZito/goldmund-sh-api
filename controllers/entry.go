@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/MatthewZito/goldmund-sh-api/models"
@@ -83,6 +84,7 @@ func (ec EntryController) GetAllEntries(w http.ResponseWriter, r *http.Request) 
 // BuildEntryFilter constructs a filtered cursor contingent on `lastProcessedID`
 func (ec EntryController) BuildEntryFilter(lastProcessedID string, options *options.FindOptions) (curs *mongo.Cursor, err error) {
 	if lastProcessedID != "" {
+		fmt.Println(lastProcessedID)
 		return ec.coll.Find(context.Background(), bson.M{"createdAt": bson.M{"$lt": lastProcessedID}}, options)
 	}
 
