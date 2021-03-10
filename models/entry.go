@@ -16,4 +16,5 @@ type Entry struct {
 	Slug          string             `json:"slug" bson:"slug"`
 	CreatedAt     time.Time          `json:"createdAt" bson:"createdAt"`
 	UpdatedAt     time.Time          `json:"updatedAt" bson:"updatedAt"`
+	Deleted       bool               `json:"deleted" bson:"deleted"`
 }

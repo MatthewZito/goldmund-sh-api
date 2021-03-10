@@ -2,12 +2,12 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/MatthewZito/goldmund-sh-api/models"
 	"github.com/MatthewZito/goldmund-sh-api/shared"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -28,7 +28,13 @@ func (ec EntryController) GetEntryBySlug(w http.ResponseWriter, r *http.Request)
 
 	var entry models.Entry
 
-	err := ec.coll.FindOne(context.Background(), bson.M{"slug": slug}).Decode(&entry)
+	var filter = bson.M{"$and": bson.A{
+		bson.M{"deleted": bson.M{"$ne": true}},
+		bson.M{"slug": slug},
+	},
+	}
+
+	err := ec.coll.FindOne(context.Background(), filter).Decode(&entry)
 
 	if err != nil {
 		shared.FError(w, http.StatusBadRequest, "Invalid slug")
@@ -46,11 +52,13 @@ func (ec EntryController) GetAllEntries(w http.ResponseWriter, r *http.Request) 
 
 	options := options.Find()
 
+	filter := ec.BuildEntryFilter(lastProcessedID, options)
+
 	options.SetSort(bson.M{"createdAt": -1})
 
 	options.SetLimit(10)
 
-	curs, err := ec.BuildEntryFilter(lastProcessedID, options)
+	curs, err := ec.coll.Find(context.Background(), filter, options)
 
 	if err != nil {
 		shared.FError(w, http.StatusBadRequest, "Failed to fetch entries")
@@ -82,11 +90,16 @@ func (ec EntryController) GetAllEntries(w http.ResponseWriter, r *http.Request) 
 }
 
 // BuildEntryFilter constructs a filtered cursor contingent on `lastProcessedID`
-func (ec EntryController) BuildEntryFilter(lastProcessedID string, options *options.FindOptions) (curs *mongo.Cursor, err error) {
+func (ec EntryController) BuildEntryFilter(lastProcessedID string, options *options.FindOptions) primitive.M {
 	if lastProcessedID != "" {
-		fmt.Println(lastProcessedID)
-		return ec.coll.Find(context.Background(), bson.M{"createdAt": bson.M{"$lt": lastProcessedID}}, options)
-	}
 
-	return ec.coll.Find(context.Background(), bson.M{}, options)
+		objectID, _ := primitive.ObjectIDFromHex(lastProcessedID)
+
+		return bson.M{"$and": bson.A{
+			bson.M{"deleted": bson.M{"$ne": true}},
+			bson.M{"_id": bson.M{"$lt": objectID}},
+		},
+		}
+	}
+	return bson.M{"deleted": bson.M{"$ne": true}}
 }
